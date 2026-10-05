@@ -34,19 +34,15 @@
   .qr .txt b{display:block;color:var(--ink);font-size:14px}
   .qr .txt code{font-size:11px;color:var(--accent);word-break:break-all}
   main{flex:1;position:relative;overflow:hidden;padding:8px 28px 28px}
-  .wall{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));align-content:start;height:100%;overflow:hidden}
-  .wall[data-density="2"]{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
-  .wall[data-density="3"]{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
-  .card{background:var(--fill,#fff);border-radius:var(--radius);padding:22px 22px 18px;box-shadow:var(--shadow);position:relative;transform:rotate(var(--rot,0deg));animation:land .6s cubic-bezier(.2,.9,.25,1.25) both;display:flex;flex-direction:column;gap:12px;min-height:170px}
-  .wall[data-density="2"] .card{padding:18px 18px 14px;min-height:140px;border-radius:20px}
-  .wall[data-density="3"] .card{padding:12px 14px 10px;min-height:0;border-radius:16px;gap:8px}
+  /* The 15 newest ideas, 5 across and 3 down, sized to fill the screen */
+  .wall{display:grid;gap:20px;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));height:100%}
+  @media (max-aspect-ratio:1/1){.wall{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(5,minmax(0,1fr))}}
+  .card{background:var(--fill,#fff);border-radius:var(--radius);padding:clamp(14px,1.3vw,26px) clamp(16px,1.4vw,28px) clamp(12px,1.1vw,22px);box-shadow:var(--shadow);position:relative;transform:rotate(var(--rot,0deg));animation:land .6s cubic-bezier(.2,.9,.25,1.25) both;display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
   @keyframes land{0%{transform:scale(.4) rotate(-8deg) translateY(40px);opacity:0}70%{opacity:1}100%{transform:rotate(var(--rot,0deg));opacity:1}}
-  .card .t{font-size:24px;font-weight:700;line-height:1.25;letter-spacing:-.01em;overflow-wrap:anywhere}
-  .wall[data-density="2"] .card .t{font-size:19px}
-  .wall[data-density="3"] .card .t{font-size:15px;font-weight:600}
-  .card .who{display:flex;align-items:center;gap:8px;margin-top:auto;color:var(--muted);font-size:13px;font-weight:700}
-  .card .who i{width:24px;height:24px;border-radius:50%;background:rgba(20,20,19,.08);display:grid;place-items:center;font-style:normal;font-size:12px;color:var(--ink)}
-  .wall[data-density="3"] .card .who{font-size:12px}
+  .card .t{flex:1;min-height:0;overflow:hidden;font-size:28px;font-weight:700;line-height:1.2;letter-spacing:-.01em;overflow-wrap:anywhere}
+  .card .who{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:17px;font-weight:700;min-width:0}
+  .card .who i{flex:none;width:30px;height:30px;border-radius:50%;background:rgba(20,20,19,.08);display:grid;place-items:center;font-style:normal;font-size:15px;color:var(--ink)}
+  .card .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .card.new::after{content:"NEW";position:absolute;top:-8px;right:14px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:800;letter-spacing:.08em;padding:4px 8px;border-radius:999px;box-shadow:0 4px 12px rgba(217,119,87,.4);animation:tag 8s forwards}
   .card.new{box-shadow:0 0 0 3px var(--accent),var(--shadow)}
   @keyframes tag{0%,85%{opacity:1}100%{opacity:0}}
@@ -124,7 +120,7 @@
       <div class="url" id="url2"></div>
       <p>Your idea lands on this wall the moment you press add.</p>
     </div>
-    <div class="wall" id="wall" data-density="1"></div>
+    <div class="wall" id="wall"></div>
   </main>
 
   <div class="bar" id="bar">
@@ -163,6 +159,7 @@
   mkQr('qr1', 84); mkQr('qr2', 260); mkQr('qr3', 520);
 
   const fills = ['var(--tint-clay)', 'var(--tint-oat)', 'var(--tint-sage)', 'var(--tint-sand)', 'var(--tint-sky)'];
+  const MAX_CARDS = 15;
   const seen = new Map(); // id -> element
   let admin = false, key = null;
   try { key = sessionStorage.getItem('bw-admin-key'); } catch {}
@@ -184,33 +181,43 @@
     if (isNew) setTimeout(() => c.classList.remove('new'), 8000);
     return c;
   }
+  // Largest text size at which the idea still fits its card.
+  function fit(c) {
+    const t = c.querySelector('.t');
+    if (!c.clientHeight) return;
+    let fs = Math.round(Math.min(c.clientWidth * 0.12, c.clientHeight * 0.17));
+    t.style.display = ''; t.style.webkitLineClamp = ''; t.style.fontSize = fs + 'px';
+    while (fs > 16 && t.scrollHeight > t.clientHeight) { fs -= 1; t.style.fontSize = fs + 'px'; }
+    // Still too long on a small screen: end on a whole line with an ellipsis.
+    if (t.scrollHeight > t.clientHeight) { const lines = Math.max(1, Math.floor(t.clientHeight / (fs * 1.2))); t.style.display = '-webkit-box'; t.style.webkitBoxOrient = 'vertical'; t.style.webkitLineClamp = lines; }
+  }
   function bump(id, v) { const el = $(id); if (el.textContent !== String(v)) { el.textContent = v; el.classList.add('bump'); setTimeout(() => el.classList.remove('bump'), 250); } }
-  let first = true;
+  let first = true, seq = 0;
   async function refresh(full) {
-    let d;
+    let d; const n = ++seq;
     try { const w = await BW.wall(KEY); d = { answers: w.answers.map((a) => ({ id: a.id, name: a.name, text: a.text, ts: Date.parse(a.created_at) })), count: w.count, people: w.people }; } catch (e) { return; }
+    if (n !== seq) return; // a later refresh is already in flight
     const wall = $('wall');
-    const ids = new Set(d.answers.map((a) => a.id));
+    // Only the newest cards are on the wall, newest first; the counters still show the whole day.
+    const show = d.answers.slice().sort((a, b) => b.ts - a.ts).slice(0, MAX_CARDS);
+    const ids = new Set(show.map((a) => a.id));
     for (const [id, el] of seen) if (!ids.has(id)) { el.remove(); seen.delete(id); }
-    for (const a of d.answers) {
-      if (seen.has(a.id)) continue;
-      const el = card(a, !first);
-      wall.prepend(el); seen.set(a.id, el);
-      if (!first) { const sp = $('spark'); sp.classList.remove('pop'); void sp.offsetWidth; sp.classList.add('pop'); }
-    }
+    // An older idea coming back (because a newer one was hidden or removed) lands below the cards already up, without the NEW tag.
+    const fresh = seen.size === 0; let kept = seen.size;
+    show.forEach((a, i) => {
+      if (seen.has(a.id)) { kept--; return; }
+      const isNew = !first && (fresh || kept > 0);
+      const el = card(a, isNew);
+      wall.insertBefore(el, wall.children[i] || null); seen.set(a.id, el); fit(el);
+      if (isNew) { const sp = $('spark'); sp.classList.remove('pop'); void sp.offsetWidth; sp.classList.add('pop'); }
+    });
     first = false;
     bump('count', d.count); bump('people', d.people);
     $('empty').classList.toggle('gone', d.answers.length > 0);
-    const n = d.answers.length;
-    wall.dataset.density = n > 28 ? '3' : n > 10 ? '2' : '1';
-    // Keep the newest cards visible: drop the oldest from the DOM if the wall overflows.
-    let guard = 0;
-    while (wall.scrollHeight > wall.clientHeight + 4 && wall.children.length > 6 && guard++ < 200) {
-      const last = wall.lastElementChild; last.remove();
-      for (const [id, el] of seen) if (el === last) seen.delete(id);
-    }
   }
   refresh(); setInterval(refresh, 3000);
+  let refit = 0;
+  window.addEventListener('resize', () => { cancelAnimationFrame(refit); refit = requestAnimationFrame(() => { for (const el of seen.values()) fit(el); }); });
   if (!BW.configured) { const h = $('empty').querySelector('h2'); h.textContent = 'Not connected to the database yet: fill in config.js and rebuild.'; }
 
   // Presenter controls
