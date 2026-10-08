@@ -13,6 +13,8 @@
   var DEFAULT_PRESET_DAYS = 30;
   var LATE_LIMIT = 20;
   var SVG_NS = 'http://www.w3.org/2000/svg';
+  var THEME_KEY = 'ops-theme';
+  var DEFAULT_THEME = 'dark';
 
   // ---------- API client ----------
 
@@ -102,6 +104,15 @@
     return Math.round((parseIso(iso) - parseIso(today)) / 86400000);
   }
 
+  /** Only the exact string "light" selects light; anything else (including junk) is the default. */
+  function resolveTheme(stored) {
+    return stored === 'light' ? 'light' : DEFAULT_THEME;
+  }
+
+  function nextTheme(theme) {
+    return theme === 'dark' ? 'light' : 'dark';
+  }
+
   // ---------- App ----------
 
   function initApp(document, fetchImpl) {
@@ -122,7 +133,8 @@
       chartOnTime: document.getElementById('chart-on-time'),
       chartTickets: document.getElementById('chart-tickets'),
       lateBody: document.getElementById('late-body'),
-      vendors: document.getElementById('vendors-list')
+      vendors: document.getElementById('vendors-list'),
+      themeToggle: document.getElementById('theme-toggle')
     };
 
     var state = {
@@ -136,8 +148,33 @@
       tickets: [],
       vendors: [],
       error: null,
-      vendorsError: null
+      vendorsError: null,
+      theme: DEFAULT_THEME
     };
+
+    // ---------- Theme ----------
+
+    function readStoredTheme() {
+      try {
+        return document.defaultView.localStorage.getItem(THEME_KEY);
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function storeTheme(theme) {
+      try {
+        document.defaultView.localStorage.setItem(THEME_KEY, theme);
+      } catch (err) {
+        // Storage can be blocked; the toggle still works for this page view.
+      }
+    }
+
+    function applyTheme(theme) {
+      state.theme = theme;
+      document.documentElement.setAttribute('data-theme', theme);
+      els.themeToggle.textContent = 'Switch to ' + nextTheme(theme) + ' theme';
+    }
 
     function svgEl(name, attrs, text) {
       var el = document.createElementNS(SVG_NS, name);
@@ -333,6 +370,14 @@
       return load(range.from, range.to);
     }
 
+    applyTheme(resolveTheme(readStoredTheme()));
+
+    els.themeToggle.addEventListener('click', function () {
+      var theme = nextTheme(state.theme);
+      applyTheme(theme);
+      storeTheme(theme);
+    });
+
     els.form.addEventListener('submit', function (event) {
       event.preventDefault();
       state.preset = null;
@@ -372,7 +417,9 @@
     formatMoney: formatMoney,
     barWidths: barWidths,
     applyPreset: applyPreset,
-    daysUntil: daysUntil
+    daysUntil: daysUntil,
+    resolveTheme: resolveTheme,
+    nextTheme: nextTheme
   };
 
   if (typeof module !== 'undefined') {

@@ -1,7 +1,62 @@
 /*
- * Marlowe & Finch operations dashboard. Light theme only; colours are hardcoded here.
- * (A theme toggle with CSS variables is ticket TODO-231.)
+ * Marlowe & Finch operations dashboard.
+ *
+ * Every colour comes from a CSS variable. The dark theme is the default (:root); the
+ * light theme overrides it when <html data-theme="light"> (set by app.js, TODO-231).
+ * The two SVG charts are styled here too, so they follow the theme with no JS colours.
  */
+
+:root {
+  color-scheme: dark;
+  --bg: #14171c;
+  --text: #e6e9ee;
+  --heading: #e9c9a8;
+  --muted: #9aa4b2;
+  --label: #b4bcc8;
+  --surface: #1e232b;
+  --surface-hover: #272d37;
+  --border-strong: #343a44;
+  --card-border: #2e343e;
+  --row-border: #2a3039;
+  --input-border: #4a5260;
+  --accent: #a85d30;
+  --accent-hover: #944f27;
+  --accent-text: #ffffff;
+  --preset-active-bg: #3a2f27;
+  --preset-active-border: #a98467;
+  --error: #fb7185;
+  --bar: #4fb3b8;
+  --bar-label: #d1d5db;
+  --warn: #fb923c;
+  --due-bg: #2c1f17;
+  --due-text: #fdba74;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f1ec;
+  --text: #1f2a37;
+  --heading: #4a2c19;
+  --muted: #6b7280;
+  --label: #4b5563;
+  --surface: #ffffff;
+  --surface-hover: #f8f6f1;
+  --border-strong: #d9d3c7;
+  --card-border: #e3ddd1;
+  --row-border: #ece7dd;
+  --input-border: #c9c2b4;
+  --accent: #4a2c19;
+  --accent-hover: #613a22;
+  --accent-text: #ffffff;
+  --preset-active-bg: #e8dfd2;
+  --preset-active-border: #a98467;
+  --error: #9f1239;
+  --bar: #2f6f73;
+  --bar-label: #374151;
+  --warn: #c2410c;
+  --due-bg: #fff4ec;
+  --due-text: #9a3412;
+}
 
 * {
   box-sizing: border-box;
@@ -10,8 +65,8 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: #f3f1ec;
-  color: #1f2a37;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .app {
@@ -29,18 +84,18 @@ body {
   align-items: flex-end;
   gap: 16px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #d9d3c7;
+  border-bottom: 2px solid var(--border-strong);
 }
 
 .header h1 {
   margin: 0;
   font-size: 1.6rem;
-  color: #4a2c19;
+  color: var(--heading);
 }
 
 .subtitle {
   margin: 4px 0 0;
-  color: #6b7280;
+  color: var(--muted);
 }
 
 .range-form {
@@ -52,41 +107,41 @@ body {
 
 .range-field {
   font-size: 0.85rem;
-  color: #4b5563;
+  color: var(--label);
 }
 
 .range-field input {
   margin-left: 4px;
   padding: 6px 8px;
-  border: 1px solid #c9c2b4;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
-  background: #ffffff;
-  color: #1f2a37;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
 }
 
 button {
   padding: 7px 12px;
-  border: 1px solid #c9c2b4;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
-  background: #ffffff;
-  color: #1f2a37;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
   cursor: pointer;
 }
 
 button:hover {
-  background: #f8f6f1;
+  background: var(--surface-hover);
 }
 
 #range-apply {
-  background: #4a2c19;
-  border-color: #4a2c19;
-  color: #ffffff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
 }
 
 #range-apply:hover {
-  background: #613a22;
+  background: var(--accent-hover);
 }
 
 .presets {
@@ -96,8 +151,8 @@ button:hover {
 }
 
 .preset.active {
-  background: #e8dfd2;
-  border-color: #a98467;
+  background: var(--preset-active-bg);
+  border-color: var(--preset-active-border);
   font-weight: 600;
 }
 
@@ -107,11 +162,11 @@ button:hover {
   min-height: 1.4em;
   margin: 12px 0 0;
   font-size: 0.9rem;
-  color: #6b7280;
+  color: var(--muted);
 }
 
 .status.error {
-  color: #9f1239;
+  color: var(--error);
   font-weight: 600;
 }
 
@@ -128,15 +183,15 @@ button:hover {
   display: flex;
   flex-direction: column;
   padding: 18px 20px;
-  background: #ffffff;
-  border: 1px solid #e3ddd1;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
   border-radius: 8px;
 }
 
 .kpi-value {
   font-size: 2rem;
   font-weight: 700;
-  color: #1f2a37;
+  color: var(--text);
 }
 
 .kpi-label {
@@ -144,7 +199,7 @@ button:hover {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #6b7280;
+  color: var(--muted);
 }
 
 /* Charts */
@@ -159,8 +214,8 @@ button:hover {
 .chart {
   margin: 0;
   padding: 16px 20px;
-  background: #ffffff;
-  border: 1px solid #e3ddd1;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
   border-radius: 8px;
 }
 
@@ -169,7 +224,7 @@ button:hover {
   margin: 0 0 12px;
   font-size: 1rem;
   font-weight: 600;
-  color: #4a2c19;
+  color: var(--heading);
 }
 
 .chart-svg {
@@ -180,19 +235,19 @@ button:hover {
 }
 
 .chart-svg .bar {
-  fill: #2f6f73;
+  fill: var(--bar);
 }
 
 .chart-svg .bar.warn {
-  fill: #c2410c;
+  fill: var(--warn);
 }
 
 .chart-svg .bar-label {
-  fill: #374151;
+  fill: var(--bar-label);
 }
 
 .chart-svg .bar-value {
-  fill: #6b7280;
+  fill: var(--muted);
   font-size: 12px;
 }
 
@@ -201,8 +256,8 @@ button:hover {
 .panel {
   padding: 16px 20px;
   margin-bottom: 24px;
-  background: #ffffff;
-  border: 1px solid #e3ddd1;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
   border-radius: 8px;
 }
 
@@ -216,14 +271,14 @@ button:hover {
 .late-table td {
   padding: 8px 10px;
   text-align: left;
-  border-bottom: 1px solid #ece7dd;
+  border-bottom: 1px solid var(--row-border);
 }
 
 .late-table th {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #6b7280;
+  color: var(--muted);
 }
 
 .late-table .num {
@@ -231,7 +286,7 @@ button:hover {
 }
 
 .late-table tr.empty td {
-  color: #6b7280;
+  color: var(--muted);
   font-style: italic;
 }
 
@@ -246,13 +301,13 @@ button:hover {
   grid-template-columns: 1fr;
   gap: 2px;
   padding: 10px 12px;
-  border-left: 4px solid #e3ddd1;
-  border-bottom: 1px solid #ece7dd;
+  border-left: 4px solid var(--card-border);
+  border-bottom: 1px solid var(--row-border);
 }
 
 .vendor.renewal-due {
-  border-left-color: #c2410c;
-  background: #fff4ec;
+  border-left-color: var(--warn);
+  background: var(--due-bg);
 }
 
 .vendor-name {
@@ -262,10 +317,10 @@ button:hover {
 .vendor-meta,
 .vendor-end {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: var(--muted);
 }
 
 .vendor.renewal-due .vendor-end {
-  color: #9a3412;
+  color: var(--due-text);
   font-weight: 600;
 }

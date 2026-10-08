@@ -36,10 +36,15 @@ const REGISTERED_IDS = [
   'chart-tickets',
   'late-table',
   'late-body',
-  'vendors-list'
+  'vendors-list',
+  'theme-toggle'
 ];
 
 const TODAY = '2026-09-21';
+
+/** The localStorage key the app stores the chosen theme under. */
+const THEME_KEY = 'ops-theme';
+const CSS_PATH = path.join(STATIC_DIR, 'style.css');
 
 /** Fixtures shaped like the real API responses (numbers from docs/data/ANSWER-KEY.md). */
 const FIXTURES = {
@@ -157,12 +162,21 @@ function createFakeApi(overrides) {
 /**
  * Load the page and start the app against a fake API. `overrides` replaces any of the
  * fixtures by name (health, kpis, onTime, late, ticketsByCategory, vendors, failing).
+ * `theme` pre-seeds the stored theme choice in localStorage (any string); without it
+ * nothing is stored. The <html> data-theme attribute and localStorage are reset on
+ * every call so tests never leak a theme into each other.
  * Returns { app, api, document, module } once the initial load has finished.
  */
 async function loadApp(overrides) {
   const html = readIndexHtml();
   const bodyMatch = html.match(/<body>([\s\S]*)<\/body>/);
   document.body.innerHTML = bodyMatch[1].replace(/<script[^>]*><\/script>/g, '');
+
+  document.documentElement.removeAttribute('data-theme');
+  window.localStorage.clear();
+  if (overrides && overrides.theme !== undefined) {
+    window.localStorage.setItem(THEME_KEY, overrides.theme);
+  }
 
   const api = createFakeApi(overrides);
   global.fetch = api.fetchImpl;
@@ -183,6 +197,8 @@ module.exports = {
   REGISTERED_IDS,
   FIXTURES,
   TODAY,
+  THEME_KEY,
+  CSS_PATH,
   loadApp,
   requireApp,
   createFakeApi,
