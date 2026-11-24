@@ -170,9 +170,11 @@
   </svg>
 
   <h1>A little gift <em>from Claude</em></h1>
-  <p>One month of Claude Pro, on us. Enter the email you use for Claude and Claude will hand you your personal redeem link. <span id="left" class="left"></span></p>
+  <p>One month of Claude Pro, on us. Enter the workshop passcode and the email you use for Claude, and Claude will hand you your personal redeem link. <span id="left" class="left"></span></p>
 
   <form id="form" novalidate>
+    <label for="passcode">Workshop passcode</label>
+    <input id="passcode" name="passcode" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Shared by your host" required maxlength="64">
     <label for="email">Your email</label>
     <input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@company.com" required maxlength="254">
     <div id="error" class="error" role="alert"></div>
@@ -194,7 +196,7 @@
 
 <script>
   // Supabase project. The publishable key is safe to ship: the table is locked down and
-  // the only thing it can call is claim_coupon() and coupons_left().
+  // the only thing it can call is claim_gift() (passcode-checked) and coupons_left().
   const SUPABASE_URL = 'https://opagnnmafcybztggddfj.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_wasizLehsGwv0Zvr3Mitvg_gy-yYB3o';
   async function rpc(name, args) {
@@ -209,7 +211,7 @@
   }
 
   const scene = document.getElementById('scene');
-  const form = document.getElementById('form'), emailEl = document.getElementById('email'), err = document.getElementById('error');
+  const form = document.getElementById('form'), emailEl = document.getElementById('email'), passEl = document.getElementById('passcode'), err = document.getElementById('error');
   const submit = document.getElementById('submit'), result = document.getElementById('result'), pill = document.getElementById('pill');
   const linkbox = document.getElementById('linkbox'), open = document.getElementById('open'), copy = document.getElementById('copy');
   const leftEl = document.getElementById('left');
@@ -217,12 +219,14 @@
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
   if (saved && saved.email) emailEl.value = saved.email;
+  if (saved && saved.passcode) passEl.value = saved.passcode;
 
   const refreshLeft = () => rpc('coupons_left').then(n => { leftEl.textContent = `${n} gifts left.`; }).catch(() => {});
   refreshLeft();
 
   const MESSAGES = {
     invalid: 'That does not look like a valid email address.',
+    bad_passcode: 'That passcode is not right. Check it with your host and try again.',
     locked: 'This email already has a gift. It was shown on the device you used first. If you lost it, come and see us at the desk.',
     exhausted: 'All the gifts have been claimed. Please come and see us at the desk.'
   };
@@ -241,15 +245,16 @@
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     err.classList.remove('show');
-    const email = emailEl.value.trim();
+    const email = emailEl.value.trim(), passcode = passEl.value.trim();
+    if (!passcode) { passEl.focus(); return showError('Enter the workshop passcode first.'); }
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) return showError(MESSAGES.invalid);
     submit.disabled = true; submit.textContent = 'Wrapping it up…';
     if (scene.dataset.state !== 'done') setState('busy');
     try {
       const token = saved && saved.email === email.toLowerCase() ? saved.token : null;
-      const [data] = await rpc('claim_coupon', { p_email: email, p_token: token });
+      const [data] = await rpc('claim_gift', { p_email: email, p_token: token, p_passcode: passcode });
       if (!data || data.status in MESSAGES) { showError(MESSAGES[data?.status] || 'Something went wrong.'); submit.textContent = 'Open my gift'; return; }
-      saved = { email: data.email, token: data.token };
+      saved = { email: data.email, token: data.token, passcode };
       try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch {}
       // let the gift wiggle for a beat before the reveal
       if (scene.dataset.state === 'busy') await new Promise(r => setTimeout(r, 500));
